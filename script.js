@@ -18,18 +18,18 @@ nav.querySelectorAll("a").forEach((link) => {
   link.addEventListener("click", () => nav.classList.remove("is-open"));
 });
 
-const objectSelect = document.querySelector("[data-object]");
+const serviceSelect = document.querySelector("[data-service]");
 const urgencySelect = document.querySelector("[data-urgency]");
 const estimate = document.querySelector("[data-estimate]");
 
 const formatPrice = (value) => new Intl.NumberFormat("ru-RU").format(value) + " ₽";
 
 const updateEstimate = () => {
-  const total = Number(objectSelect.value) + Number(urgencySelect.value);
+  const total = Number(serviceSelect.value) + Number(urgencySelect.value);
   estimate.textContent = formatPrice(total);
 };
 
-objectSelect.addEventListener("change", updateEstimate);
+serviceSelect.addEventListener("change", updateEstimate);
 urgencySelect.addEventListener("change", updateEstimate);
 updateEstimate();
 
@@ -42,10 +42,52 @@ document.querySelectorAll("[data-faq] button").forEach((button) => {
   });
 });
 
-document.querySelector("[data-form]").addEventListener("submit", (event) => {
+document.querySelector("[data-form]").addEventListener("submit", async (event) => {
   event.preventDefault();
+
+  const form = event.currentTarget;
+  const submitButton = form.querySelector("button[type='submit']");
   const note = document.querySelector("[data-form-note]");
-  note.textContent = "Спасибо, заявка получена. Мастер скоро свяжется с вами.";
+  const formData = new FormData(form);
+
+  const payload = {
+    name: formData.get("name"),
+    phone: formData.get("phone"),
+    message: formData.get("message"),
+    service: serviceSelect.options[serviceSelect.selectedIndex].text,
+    urgency: urgencySelect.options[urgencySelect.selectedIndex].text,
+    estimate: estimate.textContent,
+    pageUrl: window.location.href,
+  };
+
+  submitButton.disabled = true;
+  submitButton.textContent = "Отправляем...";
+  note.textContent = "Отправляем заявку мастеру.";
+
+  try {
+    const response = await fetch("/api/leads", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "Не удалось отправить заявку.");
+    }
+
+    form.reset();
+    updateEstimate();
+    note.textContent = result.message || "Спасибо, заявка отправлена. Я скоро свяжусь с вами.";
+  } catch (error) {
+    note.textContent =
+      "Не удалось отправить заявку. Позвоните или напишите в мессенджер, а сервер CRM проверьте отдельно.";
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = "Отправить заявку";
+  }
 });
 
 const ctx = canvas.getContext("2d");
