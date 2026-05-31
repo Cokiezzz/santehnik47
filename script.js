@@ -43,8 +43,14 @@ document.querySelectorAll("[data-faq] button").forEach((button) => {
 });
 
 const reviewsContainer = document.querySelector("[data-reviews]");
+const reviewsPagination = document.querySelector("[data-reviews-pagination]");
 const reviewsRating = document.querySelector("[data-reviews-rating]");
 const reviewsCount = document.querySelector("[data-reviews-count]");
+const reviewsState = {
+  page: 1,
+  perPage: 9,
+  totalPages: 1,
+};
 
 const escapeText = (value) => {
   const element = document.createElement("span");
@@ -55,6 +61,11 @@ const escapeText = (value) => {
 const renderStars = (rating) => {
   const roundedRating = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
   return "★".repeat(roundedRating) + "☆".repeat(5 - roundedRating);
+};
+
+const getVisibleReviewPages = (currentPage, totalPages) => {
+  const pages = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  return [...pages].filter((page) => page >= 1 && page <= totalPages).sort((left, right) => left - right);
 };
 
 const renderReviews = (reviews) => {
@@ -92,25 +103,79 @@ const renderReviews = (reviews) => {
     .join("");
 };
 
-const loadReviews = async () => {
+const renderReviewsPagination = () => {
+  if (!reviewsPagination) return;
+
+  if (reviewsState.totalPages <= 1) {
+    reviewsPagination.innerHTML = "";
+    return;
+  }
+
+  const visiblePages = getVisibleReviewPages(reviewsState.page, reviewsState.totalPages);
+  let previousPage = 0;
+
+  const pageButtons = visiblePages
+    .map((page) => {
+      const gap = previousPage && page - previousPage > 1 ? `<span class="reviews-pagination__gap">...</span>` : "";
+      previousPage = page;
+      return `
+        ${gap}
+        <button type="button" class="${page === reviewsState.page ? "is-active" : ""}" data-review-page="${page}" aria-label="Страница отзывов ${page}">
+          ${page}
+        </button>
+      `;
+    })
+    .join("");
+
+  reviewsPagination.innerHTML = `
+    <button type="button" data-review-page="${reviewsState.page - 1}" ${reviewsState.page === 1 ? "disabled" : ""}>
+      Назад
+    </button>
+    ${pageButtons}
+    <button type="button" data-review-page="${reviewsState.page + 1}" ${reviewsState.page === reviewsState.totalPages ? "disabled" : ""}>
+      Вперед
+    </button>
+  `;
+};
+
+const loadReviews = async (page = 1) => {
   if (!reviewsContainer) return;
 
   try {
-    const response = await fetch("/api/reviews");
+    const params = new URLSearchParams({
+      page: String(page),
+      perPage: String(reviewsState.perPage),
+    });
+    const response = await fetch(`/api/reviews?${params}`);
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error("Reviews unavailable");
 
+    reviewsState.page = result.page || 1;
+    reviewsState.totalPages = result.totalPages || 1;
     reviewsRating.textContent = result.averageRating ? result.averageRating.toFixed(1) : "—";
     reviewsCount.textContent = result.count;
     renderReviews(result.reviews || []);
+    renderReviewsPagination();
   } catch {
     reviewsContainer.innerHTML = `
       <article class="review-card review-card--empty">
         <p>Отзывы временно недоступны. Если сайт открыт как файл, запустите его через <code>server.js</code>.</p>
       </article>
     `;
+    if (reviewsPagination) reviewsPagination.innerHTML = "";
   }
 };
+
+reviewsPagination?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-review-page]");
+  if (!button || button.disabled) return;
+
+  const page = Number(button.dataset.reviewPage);
+  if (!Number.isFinite(page) || page < 1 || page > reviewsState.totalPages) return;
+
+  loadReviews(page);
+  document.querySelector("#reviews")?.scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 loadReviews();
 

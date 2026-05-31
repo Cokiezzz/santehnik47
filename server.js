@@ -57,7 +57,7 @@ const server = http.createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/api/reviews") {
-      sendJson(response, 200, buildReviewsPayload());
+      sendJson(response, 200, buildReviewsPayload(url.searchParams));
       return;
     }
 
@@ -469,10 +469,16 @@ function readReviews() {
   }
 }
 
-function buildReviewsPayload() {
+function buildReviewsPayload(searchParams = new URLSearchParams()) {
   const reviews = readReviews()
     .filter((review) => review && review.text && review.author)
     .sort((left, right) => String(right.date || "").localeCompare(String(left.date || "")));
+
+  const perPage = clampNumber(Number(searchParams.get("perPage") || 9), 1, 30);
+  const totalPages = Math.max(1, Math.ceil(reviews.length / perPage));
+  const page = clampNumber(Number(searchParams.get("page") || 1), 1, totalPages);
+  const start = (page - 1) * perPage;
+  const pageReviews = reviews.slice(start, start + perPage);
 
   const ratedReviews = reviews.filter((review) => Number(review.rating) > 0);
   const averageRating = ratedReviews.length
@@ -483,8 +489,16 @@ function buildReviewsPayload() {
     ok: true,
     count: reviews.length,
     averageRating: Number(averageRating.toFixed(1)),
-    reviews: reviews.slice(0, 9),
+    page,
+    perPage,
+    totalPages,
+    reviews: pageReviews,
   };
+}
+
+function clampNumber(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
 function writeLeads(leads) {
