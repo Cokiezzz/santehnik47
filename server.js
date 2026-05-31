@@ -7,6 +7,7 @@ const { URL } = require("node:url");
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
 const LEADS_FILE = path.join(DATA_DIR, "leads.json");
+const REVIEWS_FILE = path.join(DATA_DIR, "reviews.json");
 
 loadEnvFile(path.join(ROOT_DIR, ".env"));
 
@@ -52,6 +53,11 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === "POST" && url.pathname === "/api/leads") {
       await handleLeadRequest(request, response);
+      return;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/reviews") {
+      sendJson(response, 200, buildReviewsPayload());
       return;
     }
 
@@ -439,6 +445,10 @@ function ensureStorage() {
   if (!fs.existsSync(LEADS_FILE)) {
     fs.writeFileSync(LEADS_FILE, "[]\n", "utf8");
   }
+
+  if (!fs.existsSync(REVIEWS_FILE)) {
+    fs.writeFileSync(REVIEWS_FILE, "[]\n", "utf8");
+  }
 }
 
 function readLeads() {
@@ -448,6 +458,33 @@ function readLeads() {
   } catch {
     return [];
   }
+}
+
+function readReviews() {
+  ensureStorage();
+  try {
+    return JSON.parse(fs.readFileSync(REVIEWS_FILE, "utf8"));
+  } catch {
+    return [];
+  }
+}
+
+function buildReviewsPayload() {
+  const reviews = readReviews()
+    .filter((review) => review && review.text && review.author)
+    .sort((left, right) => String(right.date || "").localeCompare(String(left.date || "")));
+
+  const ratedReviews = reviews.filter((review) => Number(review.rating) > 0);
+  const averageRating = ratedReviews.length
+    ? ratedReviews.reduce((sum, review) => sum + Number(review.rating), 0) / ratedReviews.length
+    : 0;
+
+  return {
+    ok: true,
+    count: reviews.length,
+    averageRating: Number(averageRating.toFixed(1)),
+    reviews: reviews.slice(0, 9),
+  };
 }
 
 function writeLeads(leads) {

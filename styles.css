@@ -535,6 +535,104 @@ h3 {
   gap: 56px;
 }
 
+.reviews-section {
+  width: 100%;
+  padding-inline: max(18px, calc((100vw - 1180px) / 2));
+  background: var(--white);
+}
+
+.reviews-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0 auto 22px;
+}
+
+.reviews-summary div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f6f8f7;
+  padding: 18px;
+  text-align: center;
+}
+
+.reviews-summary strong,
+.reviews-summary span {
+  display: block;
+}
+
+.reviews-summary strong {
+  font-size: 24px;
+}
+
+.reviews-summary span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.review-card {
+  display: grid;
+  align-content: start;
+  min-height: 260px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  box-shadow: 0 14px 38px rgba(16, 32, 29, 0.07);
+  padding: 24px;
+}
+
+.review-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.review-card__source {
+  border-radius: 999px;
+  background: #e6f7f3;
+  color: var(--teal-dark);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.review-card__rating {
+  color: #b97900;
+  font-weight: 900;
+}
+
+.review-card h3 {
+  margin-bottom: 4px;
+}
+
+.review-card time {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.review-card p {
+  color: var(--muted);
+}
+
+.review-card__link {
+  margin-top: auto;
+  color: var(--teal-dark);
+  font-weight: 900;
+}
+
+.review-card--empty {
+  min-height: auto;
+  grid-column: 1 / -1;
+}
+
 .faq {
   border-top: 1px solid var(--line);
 }
@@ -743,6 +841,8 @@ h3 {
   .about-panel,
   .problem-band,
   .steps,
+  .reviews-summary,
+  .reviews-grid,
   .faq-section,
   .request-card,
   .footer {

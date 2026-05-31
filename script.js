@@ -42,6 +42,78 @@ document.querySelectorAll("[data-faq] button").forEach((button) => {
   });
 });
 
+const reviewsContainer = document.querySelector("[data-reviews]");
+const reviewsRating = document.querySelector("[data-reviews-rating]");
+const reviewsCount = document.querySelector("[data-reviews-count]");
+
+const escapeText = (value) => {
+  const element = document.createElement("span");
+  element.textContent = value || "";
+  return element.innerHTML;
+};
+
+const renderStars = (rating) => {
+  const roundedRating = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+  return "★".repeat(roundedRating) + "☆".repeat(5 - roundedRating);
+};
+
+const renderReviews = (reviews) => {
+  if (!reviews.length) {
+    reviewsContainer.innerHTML = `
+      <article class="review-card review-card--empty">
+        <p>Отзывы пока не добавлены. Заполните <code>data/reviews.json</code>, и они появятся здесь.</p>
+      </article>
+    `;
+    return;
+  }
+
+  reviewsContainer.innerHTML = reviews
+    .map((review) => {
+      const source = escapeText(review.source || "Отзыв");
+      const author = escapeText(review.author);
+      const text = escapeText(review.text);
+      const date = escapeText(review.date || "");
+      const url = escapeText(review.url || "");
+      const rating = renderStars(review.rating);
+
+      return `
+        <article class="review-card">
+          <div class="review-card__top">
+            <span class="review-card__source">${source}</span>
+            <span class="review-card__rating" aria-label="Оценка ${escapeText(review.rating)} из 5">${rating}</span>
+          </div>
+          <h3>${author}</h3>
+          ${date ? `<time datetime="${date}">${date}</time>` : ""}
+          <p>${text}</p>
+          ${url ? `<a class="review-card__link" href="${url}" target="_blank" rel="noopener">Открыть источник</a>` : ""}
+        </article>
+      `;
+    })
+    .join("");
+};
+
+const loadReviews = async () => {
+  if (!reviewsContainer) return;
+
+  try {
+    const response = await fetch("/api/reviews");
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error("Reviews unavailable");
+
+    reviewsRating.textContent = result.averageRating ? result.averageRating.toFixed(1) : "—";
+    reviewsCount.textContent = result.count;
+    renderReviews(result.reviews || []);
+  } catch {
+    reviewsContainer.innerHTML = `
+      <article class="review-card review-card--empty">
+        <p>Отзывы временно недоступны. Если сайт открыт как файл, запустите его через <code>server.js</code>.</p>
+      </article>
+    `;
+  }
+};
+
+loadReviews();
+
 document.querySelector("[data-form]").addEventListener("submit", async (event) => {
   event.preventDefault();
 
