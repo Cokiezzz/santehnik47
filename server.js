@@ -8,6 +8,9 @@ const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
 const LEADS_FILE = path.join(DATA_DIR, "leads.json");
 const REVIEWS_FILE = path.join(DATA_DIR, "reviews.json");
+const POLLING_LOCK_FILE = path.join(DATA_DIR, "telegram-polling.lock");
+const POLLING_LOCK_STALE_MS = 2 * 60 * 1000;
+const POLLING_LOCK_TOUCH_MS = 30 * 1000;
 
 loadEnvFile(path.join(ROOT_DIR, ".env"));
 
@@ -97,7 +100,7 @@ if (BOT_TOKEN && ENABLE_BOT_POLLING) {
   setupBotMenu().catch((error) => {
     console.error("Telegram menu setup failed:", error.message);
   });
-  startBotPolling();
+  tryStartBotPolling();
 }
 
 async function handleLeadRequest(request, response) {
@@ -223,6 +226,80 @@ async function startBotPolling() {
     } catch (error) {
       console.error("Telegram polling failed:", error.message);
       await wait(5000);
+    }
+  }
+}
+
+function tryStartBotPolling() {
+  const releaseLock = acquirePollingLock();
+
+  if (!releaseLock) {
+    console.log("Telegram bot polling skipped: another app instance already handles getUpdates.");
+    return;
+  }
+
+  startBotPolling().finally(releaseLock);
+}
+
+function acquirePollingLock() {
+  ensureStorage();
+  clearStalePollingLock();
+
+  let lockFd;
+  const lockToken = JSON.stringify({ pid: process.pid, startedAt: new Date().toISOString() });
+
+  try {
+    lockFd = fs.openSync(POLLING_LOCK_FILE, "wx");
+    fs.writeFileSync(lockFd, lockToken, "utf8");
+  } catch (error) {
+    if (error.code !== "EEXIST") {
+      console.error("Telegram polling lock failed:", error.message);
+    }
+    return null;
+  } finally {
+    if (lockFd) fs.closeSync(lockFd);
+  }
+
+  const heartbeat = setInterval(() => {
+    const now = new Date();
+    fs.utimes(POLLING_LOCK_FILE, now, now, () => {});
+  }, POLLING_LOCK_TOUCH_MS);
+
+  const release = () => {
+    clearInterval(heartbeat);
+    try {
+      if (fs.readFileSync(POLLING_LOCK_FILE, "utf8") === lockToken) {
+        fs.unlinkSync(POLLING_LOCK_FILE);
+      }
+    } catch (error) {
+      if (error.code !== "ENOENT") {
+        console.error("Telegram polling lock release failed:", error.message);
+      }
+    }
+  };
+
+  process.once("exit", release);
+  process.once("SIGINT", () => {
+    release();
+    process.exit(0);
+  });
+  process.once("SIGTERM", () => {
+    release();
+    process.exit(0);
+  });
+
+  return release;
+}
+
+function clearStalePollingLock() {
+  try {
+    const stats = fs.statSync(POLLING_LOCK_FILE);
+    if (Date.now() - stats.mtimeMs > POLLING_LOCK_STALE_MS) {
+      fs.unlinkSync(POLLING_LOCK_FILE);
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.error("Telegram polling lock check failed:", error.message);
     }
   }
 }

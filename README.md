@@ -84,6 +84,8 @@ http://localhost:3000
 - `Все заявки`;
 - `Помощь`.
 
+Если хостинг запускает несколько экземпляров приложения, Telegram разрешит `getUpdates` только одному из них. Сервер использует файл `data/telegram-polling.lock`, чтобы polling команд работал в одном процессе и не появлялась ошибка `Conflict: terminated by other getUpdates request`.
+
 ## Важно перед рекламой
 
 - Не вставляйте токен Telegram-бота в HTML, CSS или JS.
