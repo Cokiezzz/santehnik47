@@ -179,12 +179,31 @@ reviewsPagination?.addEventListener("click", (event) => {
 
 loadReviews();
 
-document.querySelector("[data-form]").addEventListener("submit", async (event) => {
+const requestForm = document.querySelector("[data-form]");
+const privacyConsent = document.querySelector("[data-privacy-consent]");
+const submitButton = document.querySelector("[data-submit-button]");
+
+const updateSubmitState = () => {
+  if (!submitButton || !privacyConsent) return;
+  submitButton.disabled = !privacyConsent.checked;
+};
+
+privacyConsent?.addEventListener("change", updateSubmitState);
+updateSubmitState();
+
+requestForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const form = event.currentTarget;
   const submitButton = form.querySelector("button[type='submit']");
   const note = document.querySelector("[data-form-note]");
+
+  if (!privacyConsent.checked) {
+    note.textContent = "Подтвердите согласие на обработку персональных данных.";
+    updateSubmitState();
+    return;
+  }
+
   const formData = new FormData(form);
 
   const payload = {
@@ -217,12 +236,13 @@ document.querySelector("[data-form]").addEventListener("submit", async (event) =
 
     form.reset();
     updateEstimate();
+    updateSubmitState();
     note.textContent = result.message || "Спасибо, заявка отправлена. Я скоро свяжусь с вами.";
   } catch (error) {
     note.textContent =
       "Не удалось отправить заявку. Позвоните или напишите в мессенджер, а сервер CRM проверьте отдельно.";
   } finally {
-    submitButton.disabled = false;
+    updateSubmitState();
     submitButton.textContent = "Отправить заявку";
   }
 });

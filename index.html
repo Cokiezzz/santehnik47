@@ -349,8 +349,12 @@
               Что случилось
               <textarea name="message" rows="4" placeholder="Например: засор, протечка, промывка отопления"></textarea>
             </label>
-            <button class="button button--primary button--wide" type="submit">Отправить заявку</button>
-            <p class="form-note" data-form-note>Нажимая кнопку, вы соглашаетесь на обратный звонок.</p>
+            <button class="button button--primary button--wide" type="submit" disabled data-submit-button>Отправить заявку</button>
+            <label class="form-consent">
+              <input type="checkbox" name="privacy" required data-privacy-consent />
+              <span>Принимаю условия обработки персональных данных и соглашаюсь с <a href="privacy.html">политикой конфиденциальности</a>.</span>
+            </label>
+            <p class="form-note" data-form-note>Отправка заявки станет доступна после подтверждения согласия.</p>
           </form>
         </div>
       </section>
@@ -373,6 +377,15 @@
       <div>
         <span>Ежедневно, круглосуточно</span>
         <span>Гатчина, СПБ и юго-запад ЛО</span>
+      </div>
+      <div class="footer__legal">
+        <p>ИП Нуждин Андрей, ИНН 470523546336, ОГРНИП 323470400136750.</p>
+        <p>Информация на сайте носит информационный характер и не является пуюличной офертой на основании ст.437 Гражданского кодекса РФ.</p>
+        <p>Оставляя заявку на сайте, вы соглашаетесь с политикой конфиденциальности.</p>
+        <div class="footer__bottom">
+          <span>© 2026 Сантехник Андрей | santehnik47. Все права защищены.</span>
+          <a href="privacy.html">Политика конфиденциальности</a>
+        </div>
       </div>
     </footer>
 
