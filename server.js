@@ -11,7 +11,8 @@ const REVIEWS_FILE = path.join(DATA_DIR, "reviews.json");
 
 loadEnvFile(path.join(ROOT_DIR, ".env"));
 
-const PORT = Number(process.env.PORT || 3000);
+const IS_PASSENGER = typeof PhusionPassenger !== "undefined" || process.env.LISTEN_TARGET === "passenger";
+const LISTEN_TARGET = IS_PASSENGER ? "passenger" : Number(process.env.PORT || 3000);
 const TELEGRAM_DISABLED = process.env.TELEGRAM_DISABLED === "true";
 const BOT_TOKEN = TELEGRAM_DISABLED ? "" : process.env.TELEGRAM_BOT_TOKEN || "";
 const OWNER_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
@@ -76,8 +77,12 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-server.listen(PORT, () => {
-  console.log(`Site and CRM server: http://localhost:${PORT}`);
+server.listen(LISTEN_TARGET, () => {
+  console.log(
+    IS_PASSENGER
+      ? "Site and CRM server started by Passenger"
+      : `Site and CRM server: http://localhost:${LISTEN_TARGET}`
+  );
   if (!BOT_TOKEN) {
     console.log("Telegram bot is disabled: set TELEGRAM_BOT_TOKEN in .env");
   } else if (!OWNER_CHAT_ID) {
